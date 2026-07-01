@@ -33,15 +33,40 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 ::-webkit-scrollbar { width: 3px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.04); border-radius: 2px; }
+
+/* ===== Grain overlay ===== */
+#grain {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+}
 
 #rain-canvas {
   position: fixed;
   top: 0; left: 0;
   width: 100%; height: 100%;
   z-index: 0;
+}
+
+#fx-canvas {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: 3;
+  pointer-events: none;
 }
 
 .scroll-content {
@@ -131,6 +156,7 @@ body {
   font-weight: 200;
   background: rgba(160, 175, 200, 0.03);
   border-radius: 0 2px 2px 0;
+  position: relative;
 }
 
 .verse {
@@ -146,6 +172,7 @@ body {
   transform: translateY(28px);
   transition: opacity 1.2s var(--ease-out), transform 1.2s var(--ease-out), color 0.8s ease;
   cursor: default;
+  position: relative;
 }
 
 .verse.revealed {
@@ -155,6 +182,15 @@ body {
 
 .verse:hover {
   color: rgba(180, 175, 160, 0.35);
+}
+
+.verse::after {
+  content: '';
+  display: block;
+  width: 24px;
+  height: 1px;
+  background: var(--paper-faint);
+  margin: 0 auto;
 }
 
 .footer {
@@ -243,12 +279,15 @@ body {
   .vignette, .verse, .footer { opacity: 1; transform: none; }
   .hero-title { animation: none; opacity: 1; letter-spacing: 24px; }
   .hero-sub { animation: none; opacity: 1; }
+  #fx-canvas { display: none; }
 }
 </style>
 </head>
 <body>
 
+<div id="grain"></div>
 <canvas id="rain-canvas"></canvas>
+<canvas id="fx-canvas"></canvas>
 
 <div class="scroll-content">
   <header class="hero">
@@ -277,7 +316,7 @@ body {
     </p>
   </section>
 
-  <div class="verse">
+  <div class="verse" data-verse="1">
     后来我才明白<br>
     让人难过的不是下雨<br>
     是雨停了<br>
@@ -304,7 +343,7 @@ body {
     </blockquote>
   </section>
 
-  <div class="verse">
+  <div class="verse" data-verse="2">
     雨会停<br>
     但有些东西<br>
     湿了就是湿了
@@ -330,11 +369,15 @@ body {
 <script>
 const canvas = document.getElementById('rain-canvas');
 const ctx = canvas.getContext('2d');
-let W, H;
+const fxCanvas = document.getElementById('fx-canvas');
+const fxCtx = fxCanvas.getContext('2d');
+let W, H, FW, FH;
 
 function resize() {
   W = canvas.width = window.innerWidth;
   H = canvas.height = window.innerHeight;
+  FW = fxCanvas.width = window.innerWidth;
+  FH = fxCanvas.height = window.innerHeight;
 }
 resize();
 window.addEventListener('resize', resize);
@@ -352,6 +395,24 @@ for (let i = 0; i < DROP_COUNT; i++) {
     opacity: 0.06 + Math.random() * 0.2,
     width: 0.4 + Math.random() * 0.8,
     wind: -0.5 + Math.random() * 0.3,
+  });
+}
+
+// ===== Heavy drops (occasional) =====
+let heavyDrops = [];
+let heavyTimer = 15000 + Math.random() * 15000;
+
+function spawnHeavyDrop() {
+  heavyDrops.push({
+    x: 60 + Math.random() * (W - 120),
+    y: -40,
+    len: 45 + Math.random() * 35,
+    speed: 2 + Math.random() * 1.5,
+    opacity: 0.4 + Math.random() * 0.3,
+    width: 2 + Math.random() * 1.5,
+    wind: -0.3 + Math.random() * 0.2,
+    glow: 0.5 + Math.random() * 0.4,
+    hit: false,
   });
 }
 
@@ -373,9 +434,6 @@ function spawnSplash(x, y, count, spread, force) {
 
 // ===== Ripples =====
 let ripples = [];
-let mouseX = -1000, mouseY = -1000;
-let lastRippleTime = 0;
-const RIPPLE_INTERVAL = 70;
 
 function addRipple(x, y, count, maxR, speedMul) {
   for (let i = 0; i < count; i++) {
@@ -387,11 +445,39 @@ function addRipple(x, y, count, maxR, speedMul) {
       life: 1,
       decay: 0.016 + Math.random() * 0.01,
       speed: (1.6 + Math.random() * 1.4) * speedMul,
+      inner: maxR > 70,
+    });
+  }
+}
+
+// ===== Memory particles =====
+let particles = [];
+
+function burstParticles(el) {
+  const rect = el.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  const count = 10 + Math.floor(Math.random() * 6);
+  for (let i = 0; i < count; i++) {
+    const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.5;
+    const dist = 4 + Math.random() * 12;
+    particles.push({
+      x: cx + Math.cos(angle) * dist,
+      y: cy + Math.sin(angle) * dist,
+      vx: Math.cos(angle) * (0.15 + Math.random() * 0.25),
+      vy: -0.2 - Math.random() * 0.5,
+      life: 1,
+      decay: 0.004 + Math.random() * 0.003,
+      size: 0.8 + Math.random() * 1.6,
     });
   }
 }
 
 // ===== Mouse / Touch =====
+let mouseX = -1000, mouseY = -1000;
+let lastRippleTime = 0;
+const RIPPLE_INTERVAL = 70;
+
 canvas.style.cursor = 'default';
 
 canvas.addEventListener('mousemove', (e) => {
@@ -438,15 +524,32 @@ canvas.addEventListener('touchend', (e) => {
   }
 }, { passive: true });
 
+// ===== Verse hover particles =====
+document.querySelectorAll('.verse').forEach((el) => {
+  el.addEventListener('mouseenter', () => burstParticles(el));
+});
+
+document.querySelectorAll('.vignette blockquote').forEach((el) => {
+  el.addEventListener('mouseenter', () => burstParticles(el));
+});
+
 // ===== Fog state =====
 let fogTick = 0;
 
-// ===== Main draw loop =====
+// ===== Main draw loop (rain canvas) =====
 function draw() {
   ctx.clearRect(0, 0, W, H);
   fogTick += 0.003;
+  const dt = 16;
 
-  // Rain drops
+  // Heavy drop timer
+  heavyTimer -= dt;
+  if (heavyTimer <= 0) {
+    spawnHeavyDrop();
+    heavyTimer = 18000 + Math.random() * 22000;
+  }
+
+  // Normal rain
   for (const d of drops) {
     ctx.beginPath();
     ctx.moveTo(d.x, d.y);
@@ -467,6 +570,31 @@ function draw() {
       d.len = 12 + Math.random() * 20;
       d.opacity = 0.06 + Math.random() * 0.2;
       d.wind = -0.5 + Math.random() * 0.3;
+    }
+  }
+
+  // Heavy drops
+  for (let i = heavyDrops.length - 1; i >= 0; i--) {
+    const d = heavyDrops[i];
+    d.y += d.speed;
+    d.x += d.wind * 0.15;
+
+    ctx.save();
+    ctx.shadowColor = `rgba(180, 190, 210, ${d.glow * 0.3})`;
+    ctx.shadowBlur = 12;
+    ctx.beginPath();
+    ctx.moveTo(d.x, d.y);
+    ctx.lineTo(d.x + d.wind * d.len * 0.25, d.y + d.len);
+    ctx.strokeStyle = `rgba(170, 185, 215, ${d.opacity})`;
+    ctx.lineWidth = d.width;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+    ctx.restore();
+
+    if (d.y > H) {
+      addRipple(d.x, H, 6, 130, 1.5);
+      spawnSplash(d.x, H, 16, 30, 4);
+      heavyDrops.splice(i, 1);
     }
   }
 
@@ -508,7 +636,7 @@ function draw() {
     }
   }
 
-  // ===== Mist / Fog with window-clear effect =====
+  // Mist / Fog with window-clear effect
   const fogBase = 0.04 + Math.sin(fogTick) * 0.015;
   const onScreen = mouseX >= 0 && mouseY >= 0 && mouseX <= W && mouseY <= H;
 
@@ -528,7 +656,7 @@ function draw() {
     ctx.fillRect(0, 0, W, H);
   }
 
-  // Dark mist at bottom
+  // Bottom mist
   const bottomGrad = ctx.createLinearGradient(0, H - 80, 0, H);
   bottomGrad.addColorStop(0, 'rgba(160, 170, 200, 0)');
   bottomGrad.addColorStop(1, 'rgba(160, 170, 200, 0.02)');
@@ -547,11 +675,48 @@ function draw() {
 
 draw();
 
+// ===== FX canvas (particles + cursor warmth) =====
+function drawFX() {
+  fxCtx.clearRect(0, 0, FW, FH);
+
+  // Cursor warmth
+  const onScreen = mouseX >= 0 && mouseY >= 0 && mouseX <= FW && mouseY <= FH;
+  if (onScreen) {
+    const warmGrad = fxCtx.createRadialGradient(mouseX, mouseY, 0, mouseX, mouseY, 140);
+    warmGrad.addColorStop(0, 'rgba(210, 200, 170, 0.02)');
+    warmGrad.addColorStop(0.4, 'rgba(210, 200, 170, 0.008)');
+    warmGrad.addColorStop(1, 'rgba(210, 200, 170, 0)');
+    fxCtx.fillStyle = warmGrad;
+    fxCtx.fillRect(0, 0, FW, FH);
+  }
+
+  // Memory particles
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy -= 0.002;
+    p.life -= p.decay;
+    if (p.life <= 0) { particles.splice(i, 1); continue; }
+    fxCtx.globalAlpha = p.life * 0.35;
+    fxCtx.beginPath();
+    fxCtx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+    fxCtx.fillStyle = 'rgba(180, 190, 210, 0.6)';
+    fxCtx.fill();
+  }
+  fxCtx.globalAlpha = 1;
+
+  requestAnimationFrame(drawFX);
+}
+
+drawFX();
+
 // ===== Scroll reveal =====
 const observer = new IntersectionObserver((entries) => {
   for (const entry of entries) {
     if (entry.isIntersecting) {
       entry.target.classList.add('revealed');
+      burstParticles(entry.target);
       observer.unobserve(entry.target);
     }
   }
@@ -570,54 +735,41 @@ let rainPlaying = false;
 
 function createRainSound() {
   if (audioCtx) return;
-
   try {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
     const bufferSize = Math.floor(audioCtx.sampleRate * 3);
     const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
     const data = buffer.getChannelData(0);
     for (let i = 0; i < bufferSize; i++) {
       data[i] = Math.random() * 2 - 1;
     }
-
     rainSource = audioCtx.createBufferSource();
     rainSource.buffer = buffer;
     rainSource.loop = true;
-
     const filter = audioCtx.createBiquadFilter();
     filter.type = 'lowpass';
     filter.frequency.value = 1800;
     filter.Q.value = 0.4;
-
     const filter2 = audioCtx.createBiquadFilter();
     filter2.type = 'highpass';
     filter2.frequency.value = 120;
     filter2.Q.value = 0.3;
-
     rainGain = audioCtx.createGain();
     rainGain.gain.value = 0.055;
-
     rainSource.connect(filter);
     filter.connect(filter2);
     filter2.connect(rainGain);
     rainGain.connect(audioCtx.destination);
     rainSource.start();
-
     rainPlaying = true;
     soundBtn.classList.add('active');
   } catch (e) {
-    // Audio not supported
     soundBtn.style.display = 'none';
   }
 }
 
 function toggleRainSound() {
-  if (!audioCtx) {
-    createRainSound();
-    return;
-  }
-
+  if (!audioCtx) { createRainSound(); return; }
   if (rainPlaying) {
     rainGain.gain.value = 0;
     rainPlaying = false;

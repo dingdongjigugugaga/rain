@@ -3,22 +3,42 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>雨 · 忧郁</title>
+<title>雨</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@200;400&display=swap" rel="stylesheet">
 <style>
+:root {
+  --ink-deep: #08080f;
+  --ink-mid: #0c0c1a;
+  --paper: rgba(195, 192, 182, 0.5);
+  --paper-dim: rgba(195, 192, 182, 0.22);
+  --paper-faint: rgba(195, 192, 182, 0.08);
+  --cinnabar: #b8443a;
+  --cinnabar-soft: rgba(184, 68, 58, 0.08);
+  --font-display: 'Ma Shan Zheng', 'STKaiti', 'KaiTi', cursive;
+  --font-body: 'Noto Serif SC', 'SimSun', 'Songti SC', serif;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
   min-height: 100vh;
-  background: linear-gradient(180deg, #0b0b14 0%, #111122 30%, #14142a 60%, #0f0f1e 100%);
-  font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background: var(--ink-deep);
+  font-family: var(--font-body);
+  font-weight: 200;
   overflow-x: hidden;
-  color: #a0a0b0;
+  color: var(--paper);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar { width: 3px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius: 2px; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.04); border-radius: 2px; }
 
+/* ===== Canvas ===== */
 #rain-canvas {
   position: fixed;
   top: 0; left: 0;
@@ -27,7 +47,11 @@ body {
   pointer-events: none;
 }
 
-/* Mist overlay */
+#rain-canvas.interactive {
+  pointer-events: auto;
+  cursor: default;
+}
+
 #mist {
   position: fixed;
   top: 0; left: 0;
@@ -37,94 +61,157 @@ body {
   background: radial-gradient(ellipse 80% 40% at 50% 100%, rgba(150,160,180,0.04) 0%, transparent 70%);
 }
 
-.content {
+/* ===== Scroll content ===== */
+.scroll-content {
   position: relative;
   z-index: 2;
-  max-width: 640px;
+  max-width: 600px;
   margin: 0 auto;
-  padding: 100px 24px 140px;
+  padding: 120px 28px 160px;
 }
 
-header {
+/* ===== Hero ===== */
+.hero {
   text-align: center;
-  margin-bottom: 80px;
+  margin-bottom: 100px;
 }
 
-header h1 {
-  font-size: 80px;
-  font-weight: 100;
-  letter-spacing: 20px;
-  color: rgba(180,190,210,0.4);
-  text-shadow: 0 0 60px rgba(120,140,180,0.08);
+.hero-title {
+  font-family: var(--font-display);
+  font-size: 140px;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 24px;
+  color: rgba(180, 180, 165, 0.22);
+  background: linear-gradient(180deg,
+    rgba(210, 205, 190, 0.25) 0%,
+    rgba(210, 205, 190, 0.08) 50%,
+    rgba(210, 205, 190, 0.02) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 0 80px rgba(120, 140, 180, 0.06);
+  animation: titleAppear 2.4s var(--ease-out) forwards;
+  transform-origin: center;
 }
 
-header p {
+@keyframes titleAppear {
+  0% { opacity: 0; transform: scale(0.92); letter-spacing: 60px; }
+  100% { opacity: 1; transform: scale(1); letter-spacing: 24px; }
+}
+
+.hero-sub {
+  font-family: var(--font-body);
+  font-weight: 200;
   font-size: 13px;
-  color: rgba(255,255,255,0.15);
-  letter-spacing: 8px;
-  margin-top: 4px;
-  text-transform: uppercase;
+  color: var(--paper-dim);
+  letter-spacing: 10px;
+  margin-top: 8px;
+  animation: subFade 2s ease 1.2s forwards;
+  opacity: 0;
 }
 
-.divider {
-  width: 40px;
-  height: 1px;
-  background: rgba(255,255,255,0.06);
-  margin: 0 auto 48px;
+@keyframes subFade {
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
 }
 
-section { margin-bottom: 56px; }
+/* ===== Vignettes ===== */
+.vignette {
+  margin-bottom: 60px;
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 1s var(--ease-out), transform 1s var(--ease-out);
+}
 
-section p {
-  font-size: 14px;
-  line-height: 2;
-  color: rgba(200,200,215,0.4);
+.vignette.revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.vignette p {
+  font-size: 14.5px;
+  line-height: 2.1;
+  color: var(--paper);
   text-align: justify;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.4px;
+  font-weight: 200;
 }
 
-blockquote {
-  border-left: 2px solid rgba(150,160,190,0.15);
-  padding: 20px 28px;
-  margin: 32px 0;
-  font-size: 14px;
-  line-height: 2;
-  color: rgba(180,190,210,0.3);
-  font-style: italic;
-  letter-spacing: 0.5px;
-}
-
-blockquote cite {
-  display: block;
-  margin-top: 12px;
-  font-size: 12px;
-  color: rgba(255,255,255,0.12);
+.vignette blockquote {
+  border-left: 2px solid var(--cinnabar);
+  padding: 18px 28px;
+  margin: 28px 0 0;
+  font-size: 14.5px;
+  line-height: 2.1;
+  color: var(--paper-dim);
   font-style: normal;
-  letter-spacing: 3px;
+  letter-spacing: 0.4px;
+  font-weight: 200;
+  background: var(--cinnabar-soft);
+  border-radius: 0 2px 2px 0;
+  transition: opacity 1s var(--ease-out), transform 1s var(--ease-out);
 }
 
+/* ===== Verse ===== */
 .verse {
   text-align: center;
-  padding: 40px 0;
-  font-size: 14px;
-  line-height: 2.2;
-  color: rgba(180,190,210,0.25);
-  letter-spacing: 2px;
-  font-weight: 100;
-}
-
-footer {
-  text-align: center;
-  padding: 60px 0 0;
-  color: rgba(255,255,255,0.08);
-  font-size: 11px;
+  padding: 48px 0;
+  font-family: var(--font-display);
+  font-size: 18px;
+  line-height: 2.4;
+  color: rgba(180, 175, 160, 0.2);
   letter-spacing: 4px;
+  font-weight: 400;
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 1.2s var(--ease-out), transform 1.2s var(--ease-out);
 }
 
+.verse.revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ===== Footer ===== */
+.footer {
+  text-align: center;
+  padding: 80px 0 0;
+  color: var(--paper-faint);
+  font-size: 11px;
+  letter-spacing: 6px;
+  font-weight: 200;
+  opacity: 0;
+  transition: opacity 1.5s ease;
+}
+
+.footer.revealed {
+  opacity: 1;
+}
+
+/* ===== Responsive ===== */
 @media (max-width: 600px) {
-  header h1 { font-size: 52px; letter-spacing: 14px; }
-  .content { padding: 60px 20px 100px; }
-  .verse { font-size: 13px; }
+  .scroll-content { padding: 80px 20px 120px; }
+  .hero-title { font-size: 80px; letter-spacing: 16px; }
+  .hero-sub { font-size: 12px; letter-spacing: 6px; margin-top: 4px; }
+  .vignette p { font-size: 14px; line-height: 2; }
+  .vignette blockquote { font-size: 14px; padding: 14px 20px; }
+  .verse { font-size: 16px; letter-spacing: 2px; padding: 36px 0; }
+  .hero { margin-bottom: 64px; }
+  .vignette { margin-bottom: 44px; }
+}
+
+@media (max-width: 380px) {
+  .hero-title { font-size: 56px; letter-spacing: 12px; }
+  .scroll-content { padding: 60px 16px 100px; }
+}
+
+/* ===== Reduced motion ===== */
+@media (prefers-reduced-motion: reduce) {
+  .vignette, .verse, .footer { opacity: 1; transform: none; }
+  .hero-title { animation: none; opacity: 1; letter-spacing: 24px; }
+  .hero-sub { animation: none; opacity: 1; }
 }
 </style>
 </head>
@@ -133,15 +220,13 @@ footer {
 <canvas id="rain-canvas"></canvas>
 <div id="mist"></div>
 
-<div class="content">
-  <header>
-    <h1>雨</h1>
-    <p>又在落雨了</p>
+<div class="scroll-content">
+  <header class="hero">
+    <h1 class="hero-title">雨</h1>
+    <p class="hero-sub">又在落雨了</p>
   </header>
 
-  <div class="divider"></div>
-
-  <section>
+  <section class="vignette">
     <p>
       雨又下起来了。不是那种痛快的暴雨，是那种细细的、绵绵的、好像永远不会停的雨。
       落在窗玻璃上，划出一道道歪歪扭扭的痕跡，像眼泪流过的样子。
@@ -154,7 +239,7 @@ footer {
     </blockquote>
   </section>
 
-  <section>
+  <section class="vignette">
     <p>
       雨声有一种奇怪的治愈力。它把整个世界都隔开了，只剩下你和你的记忆。
       那些你以为已经忘了的事，会在这样的天气里悄悄地浮上来——
@@ -169,7 +254,7 @@ footer {
     你还是要一个人走回去
   </div>
 
-  <section>
+  <section class="vignette">
     <p>
       雨滴打在树叶上，打在屋檐上，打在地面的积水里，发出不同的声音。
       它们合在一起，变成了一首没有旋律的歌。你听着听着，
@@ -177,7 +262,7 @@ footer {
     </p>
   </section>
 
-  <section>
+  <section class="vignette">
     <p>
       有时候觉得，下雨天是这个世界给我们的一个借口——
       一个可以名正言顺地难过、可以理所当然地沉默的借口。
@@ -195,14 +280,14 @@ footer {
     湿了就是湿了
   </div>
 
-  <section>
+  <section class="vignette">
     <p>
       雨还在下。不知道什么时候会停。也许永远不会停。<br>
       也许这样也好。
     </p>
   </section>
 
-  <footer>
+  <footer class="footer">
     雨 · 一直下
   </footer>
 </div>
@@ -210,7 +295,6 @@ footer {
 <script>
 const canvas = document.getElementById('rain-canvas');
 const ctx = canvas.getContext('2d');
-
 let W, H;
 
 function resize() {
@@ -220,6 +304,7 @@ function resize() {
 resize();
 window.addEventListener('resize', resize);
 
+// ===== Rain drops =====
 const DROP_COUNT = 480;
 const drops = [];
 
@@ -235,11 +320,66 @@ for (let i = 0; i < DROP_COUNT; i++) {
   });
 }
 
+// ===== Splashes =====
 let splashes = [];
 
+function spawnSplash(x, y) {
+  for (let p = 0; p < 2; p++) {
+    splashes.push({
+      x: x + (Math.random() - 0.5) * 4,
+      y: y - Math.random() * 2,
+      vx: (Math.random() - 0.5) * 1.5,
+      vy: -Math.random() * 2 - 0.5,
+      life: 1,
+      size: 1 + Math.random() * 1.5,
+    });
+  }
+}
+
+// ===== Ripples (the signature) =====
+let ripples = [];
+let mouseX = -1000, mouseY = -1000;
+let lastRippleTime = 0;
+const RIPPLE_INTERVAL = 70;
+
+canvas.classList.add('interactive');
+
+canvas.addEventListener('mousemove', (e) => {
+  mouseX = e.clientX;
+  mouseY = e.clientY;
+  const now = Date.now();
+  if (now - lastRippleTime > RIPPLE_INTERVAL) {
+    ripples.push({ x: mouseX, y: mouseY, r: 0, maxR: 50 + Math.random() * 40, life: 1, decay: 0.018 + Math.random() * 0.008, speed: 1.8 + Math.random() * 1.2 });
+    lastRippleTime = now;
+  }
+});
+
+canvas.addEventListener('touchmove', (e) => {
+  e.preventDefault();
+  const touch = e.touches[0];
+  mouseX = touch.clientX;
+  mouseY = touch.clientY;
+  const now = Date.now();
+  if (now - lastRippleTime > RIPPLE_INTERVAL) {
+    ripples.push({ x: mouseX, y: mouseY, r: 0, maxR: 50 + Math.random() * 40, life: 1, decay: 0.018 + Math.random() * 0.008, speed: 1.8 + Math.random() * 1.2 });
+    lastRippleTime = now;
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchstart', (e) => {
+  const touch = e.touches[0];
+  mouseX = touch.clientX;
+  mouseY = touch.clientY;
+  for (let i = 0; i < 3; i++) {
+    ripples.push({ x: mouseX + (Math.random() - 0.5) * 10, y: mouseY + (Math.random() - 0.5) * 10, r: 0, maxR: 40 + Math.random() * 50, life: 1, decay: 0.015 + Math.random() * 0.01, speed: 1.5 + Math.random() * 1.5 });
+  }
+}, { passive: true });
+
+// ===== Main draw loop =====
 function draw() {
   ctx.clearRect(0, 0, W, H);
 
+  // Rain drops
   for (const d of drops) {
     ctx.beginPath();
     ctx.moveTo(d.x, d.y);
@@ -253,19 +393,7 @@ function draw() {
     d.x += d.wind * 0.2;
 
     if (d.y > H) {
-      const sx = d.x;
-      const sy = H;
-      for (let p = 0; p < 2; p++) {
-        splashes.push({
-          x: sx + (Math.random() - 0.5) * 4,
-          y: sy - Math.random() * 2,
-          vx: (Math.random() - 0.5) * 1.5,
-          vy: -Math.random() * 2 - 0.5,
-          life: 1,
-          size: 1 + Math.random() * 1.5,
-        });
-      }
-
+      spawnSplash(d.x, H);
       d.y = -d.len;
       d.x = Math.random() * W;
       d.speed = 4 + Math.random() * 8;
@@ -275,6 +403,7 @@ function draw() {
     }
   }
 
+  // Splashes
   ctx.fillStyle = 'rgba(160, 170, 200, 0.25)';
   for (let i = splashes.length - 1; i >= 0; i--) {
     const s = splashes[i];
@@ -282,15 +411,35 @@ function draw() {
     s.y += s.vy;
     s.vy += 0.08;
     s.life -= 0.025;
-
     if (s.life <= 0) { splashes.splice(i, 1); continue; }
-
     ctx.globalAlpha = s.life * 0.3;
     ctx.beginPath();
     ctx.arc(s.x, s.y, s.size * s.life, 0, Math.PI * 2);
     ctx.fill();
   }
   ctx.globalAlpha = 1;
+
+  // Ripples
+  for (let i = ripples.length - 1; i >= 0; i--) {
+    const r = ripples[i];
+    r.r += r.speed;
+    r.life -= r.decay;
+    if (r.life <= 0) { ripples.splice(i, 1); continue; }
+    const alpha = r.life * 0.18;
+    const width = 0.5 + (1 - r.life) * 1.8;
+    ctx.beginPath();
+    ctx.arc(r.x, r.y, r.r, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(160, 175, 200, ${alpha})`;
+    ctx.lineWidth = width;
+    ctx.stroke();
+    if (r.r > 12) {
+      ctx.beginPath();
+      ctx.arc(r.x, r.y, r.r * 0.65, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(180, 190, 210, ${alpha * 0.4})`;
+      ctx.lineWidth = width * 0.5;
+      ctx.stroke();
+    }
+  }
 
   // Dark mist at bottom
   const grad = ctx.createLinearGradient(0, H - 80, 0, H);
@@ -311,8 +460,8 @@ function draw() {
 
 draw();
 
-// Subtle window mist breathing effect
-let mistEl = document.getElementById('mist');
+// ===== Mist breathing =====
+const mistEl = document.getElementById('mist');
 let tick = 0;
 setInterval(() => {
   tick += 0.003;
@@ -320,6 +469,20 @@ setInterval(() => {
   mistEl.style.background =
     `radial-gradient(ellipse 70% 35% at 50% 100%, rgba(150,160,180,${a}) 0%, transparent 70%)`;
 }, 50);
+
+// ===== Scroll reveal =====
+const observer = new IntersectionObserver((entries) => {
+  for (const entry of entries) {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('revealed');
+      observer.unobserve(entry.target);
+    }
+  }
+}, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+
+document.querySelectorAll('.vignette, .verse, .footer').forEach((el) => {
+  observer.observe(el);
+});
 </script>
 </body>
 </html>

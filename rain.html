@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>雨 · 忧郁</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #0b0b14 0%, #111122 30%, #14142a 60%, #0f0f1e 100%);
+  font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  overflow-x: hidden;
+  color: #a0a0b0;
+}
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius: 2px; }
+
+#rain-canvas {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Mist overlay */
+#mist {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(ellipse 80% 40% at 50% 100%, rgba(150,160,180,0.04) 0%, transparent 70%);
+}
+
+.content {
+  position: relative;
+  z-index: 2;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 100px 24px 140px;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 80px;
+}
+
+header h1 {
+  font-size: 80px;
+  font-weight: 100;
+  letter-spacing: 20px;
+  color: rgba(180,190,210,0.4);
+  text-shadow: 0 0 60px rgba(120,140,180,0.08);
+}
+
+header p {
+  font-size: 13px;
+  color: rgba(255,255,255,0.15);
+  letter-spacing: 8px;
+  margin-top: 4px;
+  text-transform: uppercase;
+}
+
+.divider {
+  width: 40px;
+  height: 1px;
+  background: rgba(255,255,255,0.06);
+  margin: 0 auto 48px;
+}
+
+section { margin-bottom: 56px; }
+
+section p {
+  font-size: 14px;
+  line-height: 2;
+  color: rgba(200,200,215,0.4);
+  text-align: justify;
+  letter-spacing: 0.5px;
+}
+
+blockquote {
+  border-left: 2px solid rgba(150,160,190,0.15);
+  padding: 20px 28px;
+  margin: 32px 0;
+  font-size: 14px;
+  line-height: 2;
+  color: rgba(180,190,210,0.3);
+  font-style: italic;
+  letter-spacing: 0.5px;
+}
+
+blockquote cite {
+  display: block;
+  margin-top: 12px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.12);
+  font-style: normal;
+  letter-spacing: 3px;
+}
+
+.verse {
+  text-align: center;
+  padding: 40px 0;
+  font-size: 14px;
+  line-height: 2.2;
+  color: rgba(180,190,210,0.25);
+  letter-spacing: 2px;
+  font-weight: 100;
+}
+
+footer {
+  text-align: center;
+  padding: 60px 0 0;
+  color: rgba(255,255,255,0.08);
+  font-size: 11px;
+  letter-spacing: 4px;
+}
+
+@media (max-width: 600px) {
+  header h1 { font-size: 52px; letter-spacing: 14px; }
+  .content { padding: 60px 20px 100px; }
+  .verse { font-size: 13px; }
+}
+</style>
+</head>
+<body>
+
+<canvas id="rain-canvas"></canvas>
+<div id="mist"></div>
+
+<div class="content">
+  <header>
+    <h1>雨</h1>
+    <p>又在落雨了</p>
+  </header>
+
+  <div class="divider"></div>
+
+  <section>
+    <p>
+      雨又下起来了。不是那种痛快的暴雨，是那种细细的、绵绵的、好像永远不会停的雨。
+      落在窗玻璃上，划出一道道歪歪扭扭的痕跡，像眼泪流过的样子。
+      屋里很暗，没有开灯。就这样坐着，听雨。
+    </p>
+    <blockquote>
+      我不知道还能说些什么。<br>
+      所有的话都说尽了。<br>
+      窗外的雨替我沉默。
+    </blockquote>
+  </section>
+
+  <section>
+    <p>
+      雨声有一种奇怪的治愈力。它把整个世界都隔开了，只剩下你和你的记忆。
+      那些你以为已经忘了的事，会在这样的天气里悄悄地浮上来——
+      某个午后，某条街，某个再也不会见到的人。
+    </p>
+  </section>
+
+  <div class="verse">
+    后来我才明白<br>
+    让人难过的不是下雨<br>
+    是雨停了<br>
+    你还是要一个人走回去
+  </div>
+
+  <section>
+    <p>
+      雨滴打在树叶上，打在屋檐上，打在地面的积水里，发出不同的声音。
+      它们合在一起，变成了一首没有旋律的歌。你听着听着，
+      就不知道自己在想什么了。发呆也好。反正时间总是要过去的。
+    </p>
+  </section>
+
+  <section>
+    <p>
+      有时候觉得，下雨天是这个世界给我们的一个借口——
+      一个可以名正言顺地难过、可以理所当然地沉默的借口。
+      没有人会在雨天问你为什么看起来不开心。他们只会说：是啊，天气不好。
+    </p>
+    <blockquote>
+      天气不好。<br>
+      嗯，天气不好。
+    </blockquote>
+  </section>
+
+  <div class="verse">
+    雨会停<br>
+    但有些东西<br>
+    湿了就是湿了
+  </div>
+
+  <section>
+    <p>
+      雨还在下。不知道什么时候会停。也许永远不会停。<br>
+      也许这样也好。
+    </p>
+  </section>
+
+  <footer>
+    雨 · 一直下
+  </footer>
+</div>
+
+<script>
+const canvas = document.getElementById('rain-canvas');
+const ctx = canvas.getContext('2d');
+
+let W, H;
+
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+const DROP_COUNT = 480;
+const drops = [];
+
+for (let i = 0; i < DROP_COUNT; i++) {
+  drops.push({
+    x: Math.random() * W,
+    y: Math.random() * H,
+    len: 12 + Math.random() * 20,
+    speed: 4 + Math.random() * 8,
+    opacity: 0.06 + Math.random() * 0.2,
+    width: 0.4 + Math.random() * 0.8,
+    wind: -0.5 + Math.random() * 0.3,
+  });
+}
+
+let splashes = [];
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+
+  for (const d of drops) {
+    ctx.beginPath();
+    ctx.moveTo(d.x, d.y);
+    ctx.lineTo(d.x + d.wind * d.len * 0.3, d.y + d.len);
+    ctx.strokeStyle = `rgba(160, 170, 200, ${d.opacity})`;
+    ctx.lineWidth = d.width;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+
+    d.y += d.speed;
+    d.x += d.wind * 0.2;
+
+    if (d.y > H) {
+      const sx = d.x;
+      const sy = H;
+      for (let p = 0; p < 2; p++) {
+        splashes.push({
+          x: sx + (Math.random() - 0.5) * 4,
+          y: sy - Math.random() * 2,
+          vx: (Math.random() - 0.5) * 1.5,
+          vy: -Math.random() * 2 - 0.5,
+          life: 1,
+          size: 1 + Math.random() * 1.5,
+        });
+      }
+
+      d.y = -d.len;
+      d.x = Math.random() * W;
+      d.speed = 4 + Math.random() * 8;
+      d.len = 12 + Math.random() * 20;
+      d.opacity = 0.06 + Math.random() * 0.2;
+      d.wind = -0.5 + Math.random() * 0.3;
+    }
+  }
+
+  ctx.fillStyle = 'rgba(160, 170, 200, 0.25)';
+  for (let i = splashes.length - 1; i >= 0; i--) {
+    const s = splashes[i];
+    s.x += s.vx;
+    s.y += s.vy;
+    s.vy += 0.08;
+    s.life -= 0.025;
+
+    if (s.life <= 0) { splashes.splice(i, 1); continue; }
+
+    ctx.globalAlpha = s.life * 0.3;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.size * s.life, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  // Dark mist at bottom
+  const grad = ctx.createLinearGradient(0, H - 80, 0, H);
+  grad.addColorStop(0, 'rgba(160, 170, 200, 0)');
+  grad.addColorStop(1, 'rgba(160, 170, 200, 0.02)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, H - 80, W, 80);
+
+  // Upper fog
+  const fog = ctx.createLinearGradient(0, 0, 0, H * 0.15);
+  fog.addColorStop(0, 'rgba(160, 170, 200, 0.02)');
+  fog.addColorStop(1, 'rgba(160, 170, 200, 0)');
+  ctx.fillStyle = fog;
+  ctx.fillRect(0, 0, W, H * 0.15);
+
+  requestAnimationFrame(draw);
+}
+
+draw();
+
+// Subtle window mist breathing effect
+let mistEl = document.getElementById('mist');
+let tick = 0;
+setInterval(() => {
+  tick += 0.003;
+  const a = 0.03 + Math.sin(tick) * 0.015;
+  mistEl.style.background =
+    `radial-gradient(ellipse 70% 35% at 50% 100%, rgba(150,160,180,${a}) 0%, transparent 70%)`;
+}, 50);
+</script>
+</body>
+</html>
